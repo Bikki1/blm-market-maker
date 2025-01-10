@@ -1,11 +1,11 @@
-ccxt==4.4.46
-Flask==3.1.0
-python-dotenv==1.0.0
-requests==2.32.3
+ccxt==3.0.0
+Flask==2.0.1
+python-dotenv==0.19.0
+requests==2.26.0
 numpy==1.26.3
-websocket-client==1.7.0
+websocket-client==1.2.1
 cryptography==44.0.0
-gunicorn==21.2.0
+gunicorn==20.1.0
 APScheduler==3.10.4
 python-dateutil==2.8.2
 pytz==2023.3.post1
