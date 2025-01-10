@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baliam (BLM) Market Making Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f1c40f;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .status-card {
+            transition: all 0.3s ease;
+        }
+
+        .running {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .stopped {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .balance-info {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+
+        .btn-control {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-control:hover {
+            transform: scale(1.05);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .market-info {
+            font-size: 1.1em;
+        }
+
+        .trend-indicator {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .trend-bullish {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .trend-bearish {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .trend-neutral {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="text-center">
+                    <i class="fa fa-robot"></i> Baliam (BLM) Market Making Bot
+                </h1>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Status and Controls -->
+            <div class="col-md-4">
+                <div class="card status-card mb-4" id="statusCard">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Bot Status</h5>
+                        <p class="card-text" id="statusText">
+                            <span class="loading-spinner"></span> Checking status...
+                        </p>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success btn-control mb-2" id="startBtn">
+                                <i class="fa fa-play"></i> Start Bot
+                            </button>
+                            <button class="btn btn-danger btn-control" id="stopBtn">
+                                <i class="fa fa-stop"></i> Stop Bot
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Market Trend</h5>
+                        <div class="trend-indicator" id="trendIndicator">Loading...</div>
+                        <div class="market-info mt-3">
+                            <p>Volatility: <span id="volatilityValue">0%</span></p>
+                            <p>24h Volume: <span id="volumeValue">0 USDT</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance and Performance -->
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body stat-card">
+                                <div class="stat-value" id="blmBalance">0</div>
+                                <div class="stat-label">BLM Balance</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body stat-card">
+                                <div class="stat-value" id="usdtBalance">0</div>
+                                <div class="stat-label">USDT Balance</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Profit/Loss Chart</h5>
+                        <div class="chart-container">
+                            <canvas id="profitChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <!-- Order Book -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Active Orders</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Side</th>
+                                        <th>Price</th>
+                                        <th>Amount</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orderBookBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center">Loading orders...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trading Stats -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Trading Statistics</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="totalProfit">0.00</div>
+                                    <div class="stat-label">Total Profit (USDT)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="tradeCount">0</div>
+                                    <div class="stat-label">Total Trades</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Configuration</h5>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value">BLM/USDT</div>
+                                    <div class="stat-label">Trading Pair</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value">0.1% - 2%</div>
+                                    <div class="stat-label">Spread Range</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value">100-1000</div>
+                                    <div class="stat-label">Order Size (USDT)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="stat-card">
+                                    <div class="stat-value">5</div>
+                                    <div class="stat-label">Orders per Side</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Initialize profit chart
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        const profitChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Profit/Loss (USDT)',
+                    data: [],
+                    borderColor: '#2ecc71',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(46, 204, 113, 0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        function updateStatus() {
+            $.get('/api/status', function(data) {
+                const statusCard = $('#statusCard');
+                const statusText = $('#statusText');
+                
+                if (data.running) {
+                    statusCard.removeClass('stopped').addClass('running');
+                    statusText.html('<i class="fa fa-check-circle"></i> Bot is running');
+                } else {
+                    statusCard.removeClass('running').addClass('stopped');
+                    statusText.html('<i class="fa fa-times-circle"></i> Bot is stopped');
+                }
+
+                // Update trend and market info
+                $('#trendIndicator')
+                    .removeClass('trend-bullish trend-bearish trend-neutral')
+                    .addClass(`trend-${data.trend}`)
+                    .text(data.trend.toUpperCase());
+                
+                $('#volatilityValue').text((data.volatility * 100).toFixed(2) + '%');
+                $('#volumeValue').text(data.volume.toFixed(2) + ' USDT');
+            });
+        }
+
+        function updateBalance() {
+            $.get('/api/balance', function(data) {
+                $('#blmBalance').text(parseFloat(data.BLM).toFixed(4));
+                $('#usdtBalance').text(parseFloat(data.USDT).toFixed(2));
+            });
+        }
+
+        function updateProfitStats() {
+            $.get('/api/profit_stats', function(data) {
+                $('#totalProfit').text(parseFloat(data.total_profit).toFixed(2));
+                $('#tradeCount').text(data.trade_count);
+
+                // Update profit chart
+                const timestamp = new Date().toLocaleTimeString();
+                profitChart.data.labels.push(timestamp);
+                profitChart.data.datasets[0].data.push(data.total_profit);
+
+                if (profitChart.data.labels.length > 20) {
+                    profitChart.data.labels.shift();
+                    profitChart.data.datasets[0].data.shift();
+                }
+
+                profitChart.update();
+            });
+        }
+
+        function updateOrderBook() {
+            $.get('/api/orders', function(data) {
+                const orderBookBody = $('#orderBookBody');
+                orderBookBody.empty();
+
+                data.forEach(order => {
+                    const row = $('<tr>');
+                    row.append($('<td>').text(order.side.toUpperCase()));
+                    row.append($('<td>').text(parseFloat(order.price).toFixed(6)));
+                    row.append($('<td>').text(parseFloat(order.amount).toFixed(4)));
+                    row.append($('<td>').text((order.price * order.amount).toFixed(2)));
+                    orderBookBody.append(row);
+                });
+            });
+        }
+
+        $('#startBtn').click(function() {
+            $(this).prop('disabled', true).html('<span class="loading-spinner"></span> Starting...');
+            $.post('/api/start', function(data) {
+                alert(data.status);
+                updateStatus();
+                $(this).prop('disabled', false).html('<i class="fa fa-play"></i> Start Bot');
+            });
+        });
+
+        $('#stopBtn').click(function() {
+            $(this).prop('disabled', true).html('<span class="loading-spinner"></span> Stopping...');
+            $.post('/api/stop', function(data) {
+                alert(data.status);
+                updateStatus();
+                $(this).prop('disabled', false).html('<i class="fa fa-stop"></i> Stop Bot');
+            });
+        });
+
+        // Update all data every 5 seconds
+        setInterval(function() {
+            updateStatus();
+            updateBalance();
+            updateProfitStats();
+            updateOrderBook();
+        }, 5000);
+
+        // Initial updates
+        updateStatus();
+        updateBalance();
+        updateProfitStats();
+        updateOrderBook();
+    </script>
+</body>
+</html>

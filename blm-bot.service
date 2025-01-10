@@ -1,0 +1,15 @@
+[Unit]
+Description=Baliam Market Making Bot
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/path/to/blm-market-maker
+Environment="PATH=/path/to/blm-market-maker/venv/bin"
+EnvironmentFile=/path/to/blm-market-maker/.env
+ExecStart=/path/to/blm-market-maker/venv/bin/gunicorn --workers 4 --bind 127.0.0.1:5000 wsgi:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
