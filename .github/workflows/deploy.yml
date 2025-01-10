@@ -1,4 +1,4 @@
-name: Basic Test
+name: Deploy Baliam Market Making Bot
 
 on:
   push:
@@ -26,3 +26,28 @@ jobs:
       - name: Test imports
         run: |
           python -c "import werkzeug; import flask; import requests; print('All imports successful!')"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/blm-bot:latest
+            ghcr.io/${{ github.repository_owner }}/blm-bot:${{ github.sha }}

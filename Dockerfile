@@ -1,28 +1,32 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
+# Use Python 3.9 slim image
+FROM python:3.9-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Set work directory
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
+# Copy project files
 COPY . .
 
-# Create a non-root user
-RUN useradd -m botuser && chown -R botuser:botuser /app
+# Create non-root user
+RUN useradd -m botuser && \
+    chown -R botuser:botuser /app
 USER botuser
 
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "wsgi:app"]
+# Expose port
+EXPOSE 5000
+
+# Run the application
+CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]
